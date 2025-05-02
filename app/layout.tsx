@@ -4,7 +4,6 @@ import "@/styles/globals.css";
 import { Toaster } from "sonner";
 import Providers from "@/providers/Providers";
 
-
 const geistSans = Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"],
@@ -30,7 +29,8 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <Providers>{children}</Providers>
+                {/* <Providers>{children}</Providers> */}
+                {children}
                 <Toaster
                     toastOptions={{
                         style: {

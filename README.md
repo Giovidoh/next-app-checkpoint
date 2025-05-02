@@ -27,3 +27,11 @@ excute this commande in git bash
 ```bash
 find . -type d -empty -not -path "./.git*" -exec touch {}/.gitkeep \;
 ```
+
+## Activate the providers
+
+Embed the children prop of the base layout.tsx into a Providers tag (uncomment line 33 and comment/remove line 34).
+
+## Enable automatic redirection in next.config.ts
+
+Umcomment async redirects() function.

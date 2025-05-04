@@ -36,6 +36,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         data: user,
         isLoading,
         isError,
+        refetch,
     } = useQuery({
         queryKey: ["current-user"],
         queryFn: () => currentUser(token!),
@@ -66,6 +67,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
                 redirectTo("/login");
             } else {
                 if (storedToken.token) {
+                    if (user && !user.user.isActive) {
+                        logout();
+                    }
                     if (user && pathname === "/login") {
                         redirectToDashboard(user.user.isAdmin);
                     }
@@ -75,6 +79,16 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             }
         }
     }, [user, router, pathname, isError, isClient]);
+
+    // Handle data refetching on navigation
+    useEffect(() => {
+        const isPublicPathname = publicPathnames.some((path) =>
+            pathname.startsWith(path)
+        );
+        if (token && !isPublicPathname) {
+            refetch();
+        }
+    }, [pathname, token]);
 
     const login = (userData: UserType, tokenData: TokenData) => {
         localStorage.setItem("token", JSON.stringify(tokenData));

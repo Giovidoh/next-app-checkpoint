@@ -6,6 +6,7 @@ import { QueryClient, useQuery } from "@tanstack/react-query";
 import { currentUser } from "@/lib/api";
 import { usePathname, useRouter } from "next/navigation";
 import Loading from "@/app/loading";
+import { authConfig } from "./config/auth.config";
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -26,7 +27,9 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     // Safely access localStorage after hydration
     useEffect(() => {
         setIsClient(true);
-        const storedToken = JSON.parse(localStorage.getItem("token") ?? "{}");
+        const storedToken = JSON.parse(
+            localStorage.getItem(authConfig.tokenName) ?? "{}"
+        );
         if (storedToken.token) {
             setToken(storedToken.token);
         }
@@ -50,31 +53,37 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         setTransition(() => router.push(url));
     };
 
+    const redirectToSignIn = () => {
+        redirectTo(authConfig.pages.signIn);
+    };
+
     const redirectToDashboard = (isAdmin: boolean) => {
-        if (isAdmin) return redirectTo("/dashboard");
+        if (isAdmin) return redirectTo(authConfig.pages.dashboard);
     };
 
     useEffect(() => {
         if (!isClient) return;
 
-        const storedToken = JSON.parse(localStorage.getItem("token") ?? "{}");
+        const storedToken = JSON.parse(
+            localStorage.getItem(authConfig.tokenName) ?? "{}"
+        );
         const isPublicPathname = publicPathnames.some((path) =>
             pathname.startsWith(path)
         );
 
         if (!isPublicPathname) {
-            if (isError && pathname !== "/login") {
-                redirectTo("/login");
+            if (isError && pathname !== authConfig.pages.signIn) {
+                redirectToSignIn();
             } else {
                 if (storedToken.token) {
                     if (user && !user.user.isActive) {
                         logout();
                     }
-                    if (user && pathname === "/login") {
+                    if (user && pathname === authConfig.pages.signIn) {
                         redirectToDashboard(user.user.isAdmin);
                     }
-                } else if (pathname !== "/login") {
-                    redirectTo("/login");
+                } else if (pathname !== authConfig.pages.signIn) {
+                    redirectToSignIn();
                 }
             }
         }
@@ -91,17 +100,17 @@ const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }, [pathname, token]);
 
     const login = (userData: UserType, tokenData: TokenData) => {
-        localStorage.setItem("token", JSON.stringify(tokenData));
+        localStorage.setItem(authConfig.tokenName, JSON.stringify(tokenData));
         setToken(tokenData.token);
         queryClient.setQueryData(["current-user"], userData);
         redirectToDashboard(userData.isAdmin);
     };
 
     const logout = () => {
-        localStorage.removeItem("token");
+        localStorage.removeItem(authConfig.tokenName);
         setToken(undefined);
         queryClient.removeQueries({ queryKey: ["current-user"] });
-        redirectTo("/login");
+        redirectToSignIn();
     };
 
     return (

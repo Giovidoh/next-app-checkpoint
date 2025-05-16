@@ -1,3 +1,4 @@
 {
-    "i18n-ally.localesPaths": ["locales", "locales/lang"]
+    "i18n-ally.localesPaths": ["locales", "locales/lang"],
+    "i18next.i18nPaths": "g:/MyCheckpoints/next-app-checkpoint/locales,g:/MyCheckpoints/next-app-checkpoint/locales/lang"
 }

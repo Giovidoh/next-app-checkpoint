@@ -1,7 +1,6 @@
 import axios from "axios";
-import { getServerUrl } from "@/lib/utils";
 
-const serverUrl = getServerUrl();
+const proxyRoute = "/api/proxy";
 
 const API_PREFIX = "/api/v1";
 
@@ -28,7 +27,7 @@ export const api = async <T>(
 
         const response = await axios({
             method,
-            url: `${serverUrl}${prefix}${endpoint}`,
+            url: `${proxyRoute}${prefix}${endpoint}`,
             headers: {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 ...(isFormData ? {} : { "Content-Type": "application/json" }),

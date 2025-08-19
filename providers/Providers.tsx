@@ -16,6 +16,4 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
     );
 };
 
-// tanstack provider
-
 export default Providers;

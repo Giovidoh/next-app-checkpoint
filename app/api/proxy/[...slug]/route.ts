@@ -7,6 +7,13 @@ async function proxyRequest(req: NextRequest, method: string, params: any) {
   const path = params.slug.join("/"); // dynamic path after /proxy/
   const url = `${serverUrl}/${path}${req.nextUrl.search}`;
 
+  const headers = new Headers(req.headers);
+
+  // Optionally override content-type if needed
+  if (!headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+
   let body: BodyInit | undefined;
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     body = await req.text(); // get raw body (JSON, form-data, etc.)
@@ -15,10 +22,7 @@ async function proxyRequest(req: NextRequest, method: string, params: any) {
   try {
     const res = await fetch(url, {
       method,
-      headers: {
-        "Content-Type": req.headers.get("content-type") || "application/json",
-        cookie: req.headers.get("cookie") ?? "",
-      },
+      headers,
       body,
       credentials: "include",
     });

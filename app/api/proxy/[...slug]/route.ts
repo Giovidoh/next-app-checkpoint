@@ -1,63 +1,105 @@
 import { getServerUrl } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
 
 const serverUrl = getServerUrl();
 
-async function proxyRequest(req: NextRequest, method: string, params: any) {
-  const path = params.slug.join("/"); // dynamic path after /proxy/
+async function proxyRequest(
+  req: NextRequest,
+  method: string,
+  params: Promise<{ slug: string[] }>
+) {
+  // ✅ Await params before using its properties (Next.js 15 requirement)
+  const awaitedParams = await params;
+  const path = awaitedParams.slug.join("/"); // dynamic path after /proxy/
   const url = `${serverUrl}/${path}${req.nextUrl.search}`;
 
-  const headers = new Headers(req.headers);
-
-  // Optionally override content-type if needed
-  if (!headers.has("content-type")) {
-    headers.set("content-type", "application/json");
-  }
-
-  let body: BodyInit | undefined;
+  let requestData: any = undefined;
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    body = await req.text(); // get raw body (JSON, form-data, etc.)
+    const contentType = req.headers.get("content-type") || "";
+
+    try {
+      if (contentType.includes("application/json")) {
+        // Parse JSON data like axios does
+        const bodyText = await req.text();
+        if (bodyText.trim()) {
+          requestData = JSON.parse(bodyText);
+        }
+      } else {
+        // For form-data or other content types
+        requestData = await req.text();
+      }
+    } catch (parseError) {
+      // If parsing fails, try to get raw text
+      try {
+        requestData = await req.text();
+      } catch (textError) {
+        requestData = undefined;
+      }
+    }
   }
 
   try {
-    const res = await fetch(url, {
+    const isFormData = requestData instanceof FormData;
+
+    const response = await axios({
       method,
-      headers,
-      body,
-      credentials: "include",
+      url,
+      headers: {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      },
+      data: requestData || undefined,
+      withCredentials: true,
     });
 
-    // Return raw response (not always JSON)
-    const contentType = res.headers.get("content-type") || "";
-    const data = contentType.includes("application/json")
-      ? await res.json()
-      : await res.text();
-
-    return NextResponse.json(data, { status: res.status });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message ?? "Proxy error" },
-      { status: 500 }
-    );
+    return NextResponse.json(response.data, { status: response.status });
+  } catch (error: any) {
+    if (error.response) {
+      // Axios error with response
+      return NextResponse.json(error.response.data, {
+        status: error.response.status,
+      });
+    } else {
+      // Network or other error
+      return NextResponse.json(
+        { error: error.message ?? "Proxy error" },
+        { status: 500 }
+      );
+    }
   }
 }
 
-export async function GET(req: NextRequest, ctx: any) {
+export async function GET(
+  req: NextRequest,
+  ctx: { params: Promise<{ slug: string[] }> }
+) {
   return proxyRequest(req, "GET", ctx.params);
 }
 
-export async function POST(req: NextRequest, ctx: any) {
+export async function POST(
+  req: NextRequest,
+  ctx: { params: Promise<{ slug: string[] }> }
+) {
   return proxyRequest(req, "POST", ctx.params);
 }
 
-export async function PUT(req: NextRequest, ctx: any) {
+export async function PUT(
+  req: NextRequest,
+  ctx: { params: Promise<{ slug: string[] }> }
+) {
   return proxyRequest(req, "PUT", ctx.params);
 }
 
-export async function PATCH(req: NextRequest, ctx: any) {
+export async function PATCH(
+  req: NextRequest,
+  ctx: { params: Promise<{ slug: string[] }> }
+) {
   return proxyRequest(req, "PATCH", ctx.params);
 }
 
-export async function DELETE(req: NextRequest, ctx: any) {
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: Promise<{ slug: string[] }> }
+) {
   return proxyRequest(req, "DELETE", ctx.params);
 }
